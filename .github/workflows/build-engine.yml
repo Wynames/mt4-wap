@@ -1,1 +1,55 @@
+# file: .github/workflows/build-engine.yml
+name: Build APK
 
+on:
+  repository_dispatch:
+    types: [build_apk]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: ${{ github.event.client_payload.appName }}
+      TARGET_URL: ${{ github.event.client_payload.targetUrl }}
+      PACKAGE_NAME: ${{ github.event.client_payload.packageName }}
+      PROJECT_ID: ${{ github.event.client_payload.projectId }}
+      CONFIG: ${{ toJson(github.event.client_payload.config) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Replace placeholders
+        run: |
+          # Replace package name in app build.gradle and AndroidManifest
+          sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/build.gradle
+          sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/src/main/AndroidManifest.xml
+
+          # Replace app name in strings.xml
+          sed -i "s/Template App/$APP_NAME/g" android-template/app/src/main/res/values/strings.xml
+
+          # Inject target URL into MainActivity.kt (placeholder: __TARGET_URL__)
+          sed -i "s|__TARGET_URL__|$TARGET_URL|g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
+
+          # Optionally inject config JSON for watermark toggle etc.
+          # For simplicity, we assume config is injected later if needed.
+
+      - name: Make gradlew executable
+        run: chmod +x android-template/gradlew
+
+      - name: Build Release APK
+        run: |
+          cd android-template
+          ./gradlew assembleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ env.PROJECT_ID }}
+          path: android-template/app/build/outputs/apk/release/*.apk
