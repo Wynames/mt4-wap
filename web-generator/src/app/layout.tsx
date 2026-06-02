@@ -1,4 +1,4 @@
-// file: web-generator/src/app/layout.tsx
+// web-generator/src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -28,7 +28,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className="scroll-smooth">
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${inter.className} bg-black text-white antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }
