@@ -34,7 +34,13 @@ jobs:
           sed -i "s|__TARGET_URL__|$TARGET_URL|g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
           rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
           sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
-          sed -i 's|</resources>|<color name="black">#FF000000</color><color name="white">#FFFFFFFF</color><color name="purple_200">#FFBB86FC</color><color name="purple_500">#FF6200EE</color><color name="purple_700">#FF3700B3</color><color name="teal_200">#FF03DAC5</color><color name="teal_700">#FF018786</color></resources>|g' android-template/app/src/main/res/values/strings.xml
+
+          # Rewrite all theme and layout files to use Android's native system colors
+          find android-template/app/src/main/res -name "*.xml" -type f -exec sed -i 's|@color/black|@android:color/black|g' {} +
+          find android-template/app/src/main/res -name "*.xml" -type f -exec sed -i 's|@color/white|@android:color/white|g' {} +
+
+          # Safely inject remaining Material colors into a new file using printf to avoid newline/yaml bugs
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n<color name="purple_200">#FFBB86FC</color>\n<color name="purple_500">#FF6200EE</color>\n<color name="purple_700">#FF3700B3</color>\n<color name="teal_200">#FF03DAC5</color>\n<color name="teal_700">#FF018786</color>\n</resources>\n' > android-template/app/src/main/res/values/z_material_colors.xml
 
       - name: Build Release APK
         run: |
