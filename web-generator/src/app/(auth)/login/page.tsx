@@ -2,14 +2,12 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Loader2, ArrowRight, LogIn } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,10 +24,10 @@ export default function LoginPage() {
         password,
       });
       if (error) throw error;
-      router.push("/dashboard");
+      // Hard redirect to send cookies to middleware
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message || "Terjadi kesalahan");
-    } finally {
       setLoading(false);
     }
   };
