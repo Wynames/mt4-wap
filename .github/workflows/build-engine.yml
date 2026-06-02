@@ -35,9 +35,8 @@ jobs:
           rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
           sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
 
-          rm -f android-template/app/src/main/res/values/colors.xml
-          rm -f android-template/app/src/main/res/values/z_material_colors.xml
-          echo "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48cmVzb3VyY2VzPjxjb2xvciBuYW1lPSJibGFjayI+I0ZGMDAwMDAwPC9jb2xvcj48Y29sb3IgbmFtZT0id2hpdGUiPiNGRkZGRkZGPC9jb2xvcj48Y29sb3IgbmFtZT0icHVycGxlXzIwMCI+I0ZGQkI4NkZDPC9jb2xvcj48Y29sb3IgbmFtZT0icHVycGxlXzUwMCI+I0ZGNjIwMEVFPC9jb2xvcj48Y29sb3IgbmFtZT0icHVycGxlXzcwMCI+I0ZGMzcwMEIzPC9jb2xvcj48Y29sb3IgbmFtZT0idGVhbF8yMDAiPiNGRjAzREFDNTwvY29sb3I+PGNvbG9yIG5hbWU9InRlYWxfNzAwIj4jRkYwMTg3ODY8L2NvbG9yPjwvcmVzb3VyY2VzPg==" | base64 -d > android-template/app/src/main/res/values/colors.xml
+          sed -i 's|@color/black|#FF000000|g' android-template/app/src/main/res/values/themes.xml
+          sed -i 's|@color/white|#FFFFFFFF|g' android-template/app/src/main/res/values/themes.xml
 
       - name: Build Release APK
         run: |
