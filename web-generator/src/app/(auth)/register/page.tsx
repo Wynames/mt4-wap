@@ -1,11 +1,11 @@
-// file: web-generator/src/app/(auth)/register/page.tsx
+// web-generator/src/app/(auth)/register/page.tsx
 "use client";
 
 import { useState, FormEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, UserPlus } from "lucide-react";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -50,6 +50,7 @@ export default function RegisterPage() {
       >
         <div className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-10 shadow-2xl">
           <div className="text-center mb-8">
+            <UserPlus className="w-8 h-8 mx-auto mb-2 text-white/80" />
             <h1 className="text-3xl font-semibold tracking-tight">Buat Akun</h1>
             <p className="text-gray-400 mt-2 text-sm">
               Mulai buat APK premium Anda
