@@ -98,14 +98,11 @@ export default function DashboardPage() {
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
-      {/* Sidebar */}
-      <motion.aside
-        initial={{ x: -280 }}
-        animate={{ x: sidebarOpen ? 0 : -280 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className={`fixed top-0 left-0 h-full w-64 bg-black/80 backdrop-blur-xl border-r border-white/[0.08] z-40 flex flex-col lg:static lg:translate-x-0 lg:z-auto ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0`}
+      {/* Sidebar – always visible on desktop (lg) */}
+      <aside
+        className={`fixed top-0 left-0 h-full w-64 bg-black/80 backdrop-blur-xl border-r border-white/[0.08] z-40 flex flex-col 
+          transition-transform duration-300 lg:static lg:translate-x-0 lg:z-auto
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="p-6 flex-1">
           <div className="flex items-center gap-2 mb-8">
@@ -143,13 +140,13 @@ export default function DashboardPage() {
         <div className="p-4 border-t border-white/[0.08]">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3 py-2 text-gray-400 hover:text-white hover:bg-white/[0.04] rounded-lg transition"
+            className="flex items-center gap-2 w-full px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
           >
             <LogOut size={18} />
             Logout
           </button>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Main content */}
       <main className="flex-1 p-4 lg:p-8 mt-12 lg:mt-0">
