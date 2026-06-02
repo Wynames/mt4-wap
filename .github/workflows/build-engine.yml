@@ -27,26 +27,15 @@ jobs:
 
       - name: Replace placeholders
         run: |
-          # Replace package name in app build.gradle and AndroidManifest
           sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/build.gradle
           sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/src/main/AndroidManifest.xml
-
-          # Replace app name in strings.xml
           sed -i "s/Template App/$APP_NAME/g" android-template/app/src/main/res/values/strings.xml
-
-          # Inject target URL into MainActivity.kt (placeholder: __TARGET_URL__)
           sed -i "s|__TARGET_URL__|$TARGET_URL|g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
-
-          # Optionally inject config JSON for watermark toggle etc.
-          # For simplicity, we assume config is injected later if needed.
-
-      - name: Make gradlew executable
-        run: chmod +x android-template/gradlew
 
       - name: Build Release APK
         run: |
           cd android-template
-          ./gradlew assembleRelease
+          gradle assembleRelease
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
