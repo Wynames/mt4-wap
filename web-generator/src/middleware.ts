@@ -1,4 +1,4 @@
-// file: web-generator/src/middleware.ts
+// web-generator/src/middleware.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -33,13 +33,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if needed (ensure user object is available)
   const { data: { user } } = await supabase.auth.getUser()
-
-  // Protect /dashboard routes
   const url = request.nextUrl.clone()
+
+  // If user is not logged in and trying to access dashboard → redirect to login
   if (!user && url.pathname.startsWith('/dashboard')) {
     url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  // If user is already logged in and trying to access login or register → redirect to dashboard
+  if (user && (url.pathname.startsWith('/login') || url.pathname.startsWith('/register'))) {
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
@@ -48,15 +53,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public assets (images, manifest, sw.js, icons)
-     * - api routes (they handle their own auth)
-     * - auth routes (login/register themselves)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|icon-.*|manifest.json|sw.js|api|login|register).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon-.*|manifest.json|sw.js|api).*)',
   ],
 }
