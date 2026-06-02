@@ -29,6 +29,7 @@ jobs:
         run: |
           sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/build.gradle
           sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/src/main/AndroidManifest.xml
+          sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
           sed -i "s/Template App/$APP_NAME/g" android-template/app/src/main/res/values/strings.xml
           sed -i "s|__TARGET_URL__|$TARGET_URL|g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
 
