@@ -36,7 +36,8 @@ jobs:
       - name: Build Release APK
         run: |
           cd android-template
-          gradle assembleRelease
+          gradle wrapper --gradle-version 8.4
+          ./gradlew assembleRelease
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
