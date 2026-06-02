@@ -1,4 +1,4 @@
-
+// file: web-generator/package.json
 {
   "name": "xt4-app-builder",
   "version": "1.0.0",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
+    "@supabase/ssr": "^0.1.0",
     "framer-motion": "^11.11.17",
     "lucide-react": "^0.460.0",
     "next": "14.2.21",
