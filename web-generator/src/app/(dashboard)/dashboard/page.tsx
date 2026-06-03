@@ -1,12 +1,12 @@
 // file: web-generator/src/app/(dashboard)/dashboard/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import CreateForm from "@/components/CreateForm";
 import ProjectList from "@/components/ProjectList";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2,
   LayoutDashboard,
@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Box,
+  XCircle,
 } from "lucide-react";
 
 interface Project {
@@ -36,6 +37,21 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Global settings state
+  const [promoEnabled, setPromoEnabled] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [showPromo, setShowPromo] = useState(false);
+
+  const fetchProjects = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setProjects(data || []);
+  }, [user]);
+
   useEffect(() => {
     const init = async () => {
       const {
@@ -47,23 +63,38 @@ export default function DashboardPage() {
       }
       setUser(user);
 
-      const [{ data: profileData }, { data: projectsData }] = await Promise.all([
-        supabase.from("users").select("*").eq("id", user.id).single(),
-        supabase
-          .from("projects")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
-      ]);
+      const [{ data: profileData }, { data: projectsData }, { data: settings }] =
+        await Promise.all([
+          supabase.from("users").select("*").eq("id", user.id).single(),
+          supabase
+            .from("projects")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+          supabase.from("global_settings").select("*"),
+        ]);
 
       setProfile(profileData);
       setProjects(projectsData || []);
+
+      if (settings) {
+        for (const s of settings) {
+          if (s.key === "promo_enabled") setPromoEnabled(s.value === "true");
+          if (s.key === "maintenance_mode") setMaintenanceMode(s.value === "true");
+        }
+      }
+
+      // Check localStorage for promo seen
+      if (promoEnabled && !localStorage.getItem("promo_seen")) {
+        setShowPromo(true);
+      }
+
       setLoading(false);
     };
     init();
   }, []);
 
-  // Real-time subscription for project updates
+  // Real-time subscription
   useEffect(() => {
     if (!user) return;
 
@@ -72,17 +103,8 @@ export default function DashboardPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "projects", filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          setProjects((prev) => {
-            const updated = [...prev];
-            const index = updated.findIndex((p) => p.id === (payload.new as any)?.id);
-            if (index !== -1) {
-              updated[index] = payload.new as Project;
-            } else if (payload.eventType === "INSERT") {
-              updated.unshift(payload.new as Project);
-            }
-            return updated;
-          });
+        () => {
+          fetchProjects(); // Re-fetch entire list to ensure UI consistency
         }
       )
       .subscribe();
@@ -90,11 +112,16 @@ export default function DashboardPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, fetchProjects]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
+  };
+
+  const dismissPromo = () => {
+    localStorage.setItem("promo_seen", "true");
+    setShowPromo(false);
   };
 
   if (loading) {
@@ -109,6 +136,21 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black text-gray-400">
         Silakan masuk terlebih dahulu.
+      </div>
+    );
+  }
+
+  // Maintenance Mode Check
+  if (maintenanceMode && profile?.role !== "owner") {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <XCircle className="w-16 h-16 mx-auto text-red-400" />
+          <h1 className="text-3xl font-semibold">System Under Maintenance</h1>
+          <p className="text-gray-400">
+            We are performing scheduled maintenance. Please try again later.
+          </p>
+        </div>
       </div>
     );
   }
@@ -207,6 +249,42 @@ export default function DashboardPage() {
           <ProjectList projects={projects} />
         </div>
       </main>
+
+      {/* Promo Modal */}
+      <AnimatePresence>
+        {showPromo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white text-black rounded-3xl p-8 max-w-md w-full mx-4 relative"
+            >
+              <button
+                onClick={dismissPromo}
+                className="absolute top-4 right-4 text-gray-400 hover:text-black"
+              >
+                <XCircle size={24} />
+              </button>
+              <h2 className="text-2xl font-semibold mb-4">Special Offer</h2>
+              <p className="text-gray-600 mb-6">
+                Dapatkan akses premium untuk membangun APK tanpa batas. Upgrade sekarang!
+              </p>
+              <button
+                onClick={dismissPromo}
+                className="w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition"
+              >
+                Explore Premium
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Overlay for mobile sidebar */}
       {sidebarOpen && (
