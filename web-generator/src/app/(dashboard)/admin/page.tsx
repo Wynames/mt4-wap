@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Download,
 } from "lucide-react";
 
 interface Project {
@@ -257,12 +258,13 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td className="py-4">
-                          {project.config?.download_url ? (
+                          {project.status === "completed" && project.config?.download_url ? (
                             <a
                               href={project.config.download_url}
                               target="_blank"
-                              className="text-blue-400 hover:underline text-sm"
+                              className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-full transition"
                             >
+                              <Download size={14} />
                               Download
                             </a>
                           ) : (
