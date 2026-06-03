@@ -41,15 +41,16 @@ jobs:
           gradle wrapper --gradle-version 8.4
           ./gradlew assembleRelease
 
-      - name: Upload to transfer.sh and notify webhook
+      - name: Upload APK and notify webhook
         run: |
           APK_FILE=$(ls android-template/app/build/outputs/apk/release/*.apk | head -1)
-          RESPONSE=$(curl --upload-file "$APK_FILE" https://transfer.sh/app.apk)
-          DOWNLOAD_URL=$(echo "$RESPONSE" | tr -d '\n')
+          RESPONSE=$(curl -s -F "file=@$APK_FILE" https://tmpfiles.org/api/v1/upload)
+          RAW_URL=$(echo $RESPONSE | jq -r .data.url)
+          DOWNLOAD_URL="${RAW_URL/tmpfiles.org\//tmpfiles.org\/dl\/}"
           echo "Download URL: $DOWNLOAD_URL"
           curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"project_id\": \"$PROJECT_ID\", \"status\": \"success\", \"download_url\": \"$DOWNLOAD_URL\"}"
         env:
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_URL: ${{ github.event.client_payload.webhookUrl }}
 
       - name: Upload APK artifact (backup)
         uses: actions/upload-artifact@v4
