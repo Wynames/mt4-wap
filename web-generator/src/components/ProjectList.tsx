@@ -2,7 +2,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Clock, Loader2, CheckCircle, XCircle, Download } from "lucide-react";
 
 interface Project {
   id: string;
@@ -54,6 +54,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
                 <th className="pb-3 font-medium">URL Target</th>
                 <th className="pb-3 font-medium">Paket</th>
                 <th className="pb-3 font-medium">Status</th>
+                <th className="pb-3 font-medium">Download</th>
                 <th className="pb-3 font-medium">Dibuat</th>
               </tr>
             </thead>
@@ -77,6 +78,24 @@ export default function ProjectList({ projects }: ProjectListProps) {
                         {statusIcon(project.status)}
                         {project.status}
                       </span>
+                    </td>
+                    <td className="py-4">
+                      {project.status === "completed" && project.config?.download_url ? (
+                        <a
+                          href={project.config.download_url}
+                          target="_blank"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-full transition"
+                        >
+                          <Download size={14} />
+                          Download APK
+                        </a>
+                      ) : project.status === "waiting" ? (
+                        <span className="text-gray-500 text-xs flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Menunggu
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 text-xs">-</span>
+                      )}
                     </td>
                     <td className="py-4 text-gray-500 text-sm">
                       {new Date(project.created_at).toLocaleDateString("id-ID")}
