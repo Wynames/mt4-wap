@@ -1,0 +1,27 @@
+// file: web-generator/src/app/api/webhook/route.ts
+import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
+
+export async function POST(request: Request) {
+  const { project_id, status, download_url } = await request.json();
+
+  if (!project_id || !status) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { error } = await supabaseAdmin
+    .from("projects")
+    .update({ status, config: supabaseAdmin.raw("config || '{\"download_url\":\"\"" + download_url + "\"}'::jsonb") })
+    .eq("id", project_id);
+
+  if (error) {
+    return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
