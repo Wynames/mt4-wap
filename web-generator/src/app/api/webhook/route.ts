@@ -14,12 +14,29 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { error } = await supabaseAdmin
+  // Fetch existing config
+  const { data: project, error: fetchError } = await supabaseAdmin
     .from("projects")
-    .update({ status, config: supabaseAdmin.raw("config || '{\"download_url\":\"\"" + download_url + "\"}'::jsonb") })
+    .select("config")
+    .eq("id", project_id)
+    .single();
+
+  if (fetchError || !project) {
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+  }
+
+  // Merge the download_url into config
+  const updatedConfig = {
+    ...(project.config || {}),
+    download_url: download_url || "",
+  };
+
+  const { error: updateError } = await supabaseAdmin
+    .from("projects")
+    .update({ status, config: updatedConfig })
     .eq("id", project_id);
 
-  if (error) {
+  if (updateError) {
     return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
   }
 
