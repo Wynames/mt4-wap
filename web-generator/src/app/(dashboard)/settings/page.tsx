@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
-import { Loader2, LogOut, User } from "lucide-react";
+import { Loader2, LogOut, User, Key, ToggleLeft } from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -48,6 +48,7 @@ export default function SettingsPage() {
       >
         <h1 className="text-3xl font-semibold">Settings</h1>
 
+        {/* Profile */}
         <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-8 space-y-6">
           <div className="flex items-center gap-3">
             <User className="w-10 h-10 text-gray-400" />
@@ -57,6 +58,61 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Update Password */}
+          <div className="border-t border-white/[0.08] pt-6 space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Key size={18} /> Update Password
+            </h2>
+            <div className="space-y-3">
+              <input
+                type="password"
+                placeholder="Current password"
+                disabled
+                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 opacity-50 cursor-not-allowed"
+              />
+              <input
+                type="password"
+                placeholder="New password"
+                disabled
+                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 opacity-50 cursor-not-allowed"
+              />
+              <button
+                disabled
+                className="px-6 py-2 bg-white/10 text-gray-400 rounded-lg cursor-not-allowed"
+              >
+                Update Password
+              </button>
+              <p className="text-xs text-gray-500">Coming soon</p>
+            </div>
+          </div>
+
+          {/* Default Config */}
+          <div className="border-t border-white/[0.08] pt-6 space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <ToggleLeft size={18} /> Application Default Config
+            </h2>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-300">Watermark (Created via Our Builder)</span>
+              <div className="w-10 h-6 bg-white/[0.08] rounded-full relative cursor-not-allowed opacity-50">
+                <div className="absolute top-1 left-1 w-4 h-4 bg-gray-400 rounded-full"></div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-300">Pull-to-Refresh</span>
+              <div className="w-10 h-6 bg-white/[0.08] rounded-full relative cursor-not-allowed opacity-50">
+                <div className="absolute top-1 left-1 w-4 h-4 bg-gray-400 rounded-full"></div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-300">Anti-Screenshot</span>
+              <div className="w-10 h-6 bg-white/[0.08] rounded-full relative cursor-not-allowed opacity-50">
+                <div className="absolute top-1 left-1 w-4 h-4 bg-gray-400 rounded-full"></div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">Customization coming soon</p>
+          </div>
+
+          {/* Logout */}
           <div className="border-t border-white/[0.08] pt-6">
             <button
               onClick={handleLogout}
