@@ -41,14 +41,26 @@ jobs:
           gradle wrapper --gradle-version 8.4
           ./gradlew assembleRelease
 
+      - name: Sign APK with temporary keystore
+        run: |
+          # Generate a temporary keystore
+          keytool -genkey -v -keystore temp.keystore -alias temp -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Temp, OU=Temp, O=Temp, L=Temp, S=Temp, C=US"
+          # Find the unsigned APK
+          UNSIGNED_APK=$(ls android-template/app/build/outputs/apk/release/*.apk | head -1)
+          SIGNED_APK="app-release-signed.apk"
+          # Sign the APK using apksigner
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks temp.keystore --ks-pass pass:android --key-pass pass:android --out $SIGNED_APK $UNSIGNED_APK
+          # Move signed APK back to release folder
+          mv $SIGNED_APK android-template/app/build/outputs/apk/release/
+
       - name: Upload APK and notify webhook
         run: |
-          APK_FILE=$(ls android-template/app/build/outputs/apk/release/*.apk | head -1)
+          APK_FILE=$(ls android-template/app/build/outputs/apk/release/*-signed.apk | head -1)
           RESPONSE=$(curl -s -F "file=@$APK_FILE" https://tmpfiles.org/api/v1/upload)
           RAW_URL=$(echo $RESPONSE | jq -r .data.url)
           DOWNLOAD_URL="${RAW_URL/tmpfiles.org\//tmpfiles.org\/dl\/}"
           echo "Download URL: $DOWNLOAD_URL"
-          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"project_id\": \"$PROJECT_ID\", \"status\": \"success\", \"download_url\": \"$DOWNLOAD_URL\"}"
+          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"project_id\": \"$PROJECT_ID\", \"status\": \"completed\", \"download_url\": \"$DOWNLOAD_URL\"}"
         env:
           WEBHOOK_URL: ${{ github.event.client_payload.webhookUrl }}
 
@@ -56,4 +68,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apk-${{ env.PROJECT_ID }}
-          path: android-template/app/build/outputs/apk/release/*.apk
+          path: android-template/app/build/outputs/apk/release/*-signed.apk
