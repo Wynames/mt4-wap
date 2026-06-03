@@ -121,17 +121,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun isOnline(): Boolean {
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val capabilities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            cm.getNetworkCapabilities(cm.activeNetwork)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val capabilities = cm.getNetworkCapabilities(cm.activeNetwork)
+            return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
         } else {
             @Suppress("DEPRECATION")
-            cm.activeNetworkInfo?.let { info ->
-                val caps = NetworkCapabilities.Builder().build()
-                // Fallback: assume online if info exists and is connected
-                if (info.isConnected) caps else null
-            }
+            val activeNetworkInfo = cm.activeNetworkInfo
+            return activeNetworkInfo != null && activeNetworkInfo.isConnected
         }
-        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
 
     private fun showOfflineLayout() {
