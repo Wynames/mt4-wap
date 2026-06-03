@@ -1,4 +1,3 @@
-# file: .github/workflows/build-engine.yml
 name: Build APK
 
 on:
@@ -34,8 +33,6 @@ jobs:
           sed -i "s|__TARGET_URL__|$TARGET_URL|g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
           rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
           sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
-
-          echo '<?xml version="1.0" encoding="utf-8"?><resources><color name="black">#FF000000</color><color name="white">#FFFFFFFF</color></resources>' > android-template/app/src/main/res/values/colors.xml
 
       - name: Build Release APK
         run: |
