@@ -8,14 +8,12 @@
     android:orientation="vertical"
     android:padding="32dp">
 
-    <!-- Icon indicating connection loss (optional, using a simple text symbol for now) -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="⚡"
-        android:textSize="48sp"
-        android:textColor="#ffffff"
-        android:layout_marginBottom="24dp" />
+    <ImageView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/ic_offline_illustration"
+        android:layout_marginBottom="24dp"
+        android:contentDescription="Tidak ada koneksi internet" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -48,16 +46,17 @@
         android:elevation="0dp"
         android:fontFamily="sans-serif-medium" />
 
-    <!-- Promotional footer -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Want to build an app like this?\nVisit APK Builder"
+        android:text="Want to build an app like this?\nhttps://apkbuilder.com"
         android:textSize="12sp"
         android:textColor="#4b5563"
         android:fontFamily="sans-serif"
         android:gravity="center"
         android:layout_marginTop="48dp"
-        android:alpha="0.7" />
+        android:alpha="0.7"
+        android:autoLink="web"
+        android:linksClickable="true" />
 
 </LinearLayout>
