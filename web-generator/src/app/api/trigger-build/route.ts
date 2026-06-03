@@ -50,15 +50,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // Daily limit logic
+  // Daily limit logic (owners bypass)
   const today = new Date().toISOString().slice(0, 10);
   let currentCount = profile.daily_build_count;
   if (profile.last_build_date !== today) {
-    // Reset if new day
     currentCount = 0;
   }
 
-  if (currentCount >= 3) {
+  if (profile.role !== "owner" && currentCount >= 3) {
     return NextResponse.json(
       { error: "Batas harian tercapai (3 APK per hari). Coba lagi besok." },
       { status: 403 }
@@ -106,6 +105,7 @@ export async function POST(request: Request) {
 
   if (githubToken && githubOwner && githubRepo) {
     try {
+      const webhookUrl = new URL('/api/webhook', request.url).toString();
       const dispatchRes = await fetch(
         `https://api.github.com/repos/${githubOwner}/${githubRepo}/dispatches`,
         {
@@ -122,6 +122,7 @@ export async function POST(request: Request) {
               targetUrl,
               packageName,
               config,
+              webhookUrl,
             },
           }),
         }
