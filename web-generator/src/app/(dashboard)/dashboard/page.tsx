@@ -1,4 +1,4 @@
-// web-generator/src/app/(dashboard)/dashboard/page.tsx
+// file: web-generator/src/app/(dashboard)/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -62,6 +62,35 @@ export default function DashboardPage() {
     init();
   }, []);
 
+  // Real-time subscription for project updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("projects-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "projects", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          setProjects((prev) => {
+            const updated = [...prev];
+            const index = updated.findIndex((p) => p.id === (payload.new as any)?.id);
+            if (index !== -1) {
+              updated[index] = payload.new as Project;
+            } else if (payload.eventType === "INSERT") {
+              updated.unshift(payload.new as Project);
+            }
+            return updated;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -83,7 +112,9 @@ export default function DashboardPage() {
     );
   }
 
-  const dailyLimitReached = profile?.daily_build_count >= 3;
+  // Owners bypass daily limit
+  const isOwner = profile?.role === "owner";
+  const dailyLimitReached = !isOwner && profile?.daily_build_count >= 3;
   const isToday =
     profile?.last_build_date === new Date().toISOString().slice(0, 10);
   const effectiveLimitReached = isToday ? dailyLimitReached : false;
@@ -98,7 +129,7 @@ export default function DashboardPage() {
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
-      {/* Sidebar – always visible on desktop (lg) */}
+      {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 h-full w-64 bg-black/80 backdrop-blur-xl border-r border-white/[0.08] z-40 flex flex-col 
           transition-transform duration-300 lg:static lg:translate-x-0 lg:z-auto
@@ -114,14 +145,14 @@ export default function DashboardPage() {
 
           <nav className="space-y-1">
             <a
-              href="#"
+              href="/dashboard"
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.06] text-white"
             >
               <LayoutDashboard size={18} />
               Overview
             </a>
             <a
-              href="#"
+              href="/settings"
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/[0.04] hover:text-white transition"
             >
               <Settings size={18} />
