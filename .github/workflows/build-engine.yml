@@ -43,14 +43,10 @@ jobs:
 
       - name: Sign APK with temporary keystore
         run: |
-          # Generate a temporary keystore
           keytool -genkey -v -keystore temp.keystore -alias temp -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Temp, OU=Temp, O=Temp, L=Temp, S=Temp, C=US"
-          # Find the unsigned APK
           UNSIGNED_APK=$(ls android-template/app/build/outputs/apk/release/*.apk | head -1)
           SIGNED_APK="app-release-signed.apk"
-          # Sign the APK using apksigner
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks temp.keystore --ks-pass pass:android --key-pass pass:android --out $SIGNED_APK $UNSIGNED_APK
-          # Move signed APK back to release folder
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --v1-signing-enabled true --v2-signing-enabled true --ks temp.keystore --ks-pass pass:android --key-pass pass:android --out $SIGNED_APK $UNSIGNED_APK
           mv $SIGNED_APK android-template/app/build/outputs/apk/release/
 
       - name: Upload APK and notify webhook
