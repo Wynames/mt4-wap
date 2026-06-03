@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Download,
+  Save,
 } from "lucide-react";
 
 interface Project {
@@ -44,6 +45,10 @@ export default function AdminPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Global system settings state
+  const [globalWatermark, setGlobalWatermark] = useState("Created via Our Builder");
+  const [savingWatermark, setSavingWatermark] = useState(false);
+
   useEffect(() => {
     const init = async () => {
       const {
@@ -66,6 +71,17 @@ export default function AdminPage() {
       if (profileData?.role !== "owner") {
         setLoading(false);
         return;
+      }
+
+      // Fetch global watermark config from a global_settings table (or fallback to default)
+      const { data: globalData } = await supabase
+        .from("global_settings")
+        .select("value")
+        .eq("key", "watermark_text")
+        .single();
+
+      if (globalData) {
+        setGlobalWatermark(globalData.value);
       }
 
       // Fetch all projects and user emails
@@ -99,6 +115,22 @@ export default function AdminPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
+  };
+
+  const handleSaveWatermark = async () => {
+    setSavingWatermark(true);
+    // Upsert global watermark setting
+    const { error } = await supabase.from("global_settings").upsert({
+      key: "watermark_text",
+      value: globalWatermark,
+    }, { onConflict: "key" });
+
+    if (!error) {
+      alert("Watermark text saved successfully.");
+    } else {
+      alert("Failed to save watermark.");
+    }
+    setSavingWatermark(false);
   };
 
   if (loading) {
@@ -223,6 +255,33 @@ export default function AdminPage() {
               </div>
             </motion.div>
           </div>
+
+          {/* Global System Settings */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-6 space-y-4"
+          >
+            <h2 className="text-xl font-semibold text-white">Global System Settings</h2>
+            <div className="space-y-3">
+              <label className="block text-sm text-gray-300">Default Watermark Text</label>
+              <input
+                type="text"
+                value={globalWatermark}
+                onChange={(e) => setGlobalWatermark(e.target.value)}
+                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
+              />
+              <button
+                onClick={handleSaveWatermark}
+                disabled={savingWatermark}
+                className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-70"
+              >
+                {savingWatermark ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
+                Save Watermark
+              </button>
+            </div>
+          </motion.div>
 
           {/* Projects Table */}
           <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-6">
