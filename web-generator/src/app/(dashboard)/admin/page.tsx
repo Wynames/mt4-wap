@@ -17,7 +17,10 @@ import {
   X,
   Download,
   Save,
+  ArrowLeft,
+  Eye,
 } from "lucide-react";
+import Link from "next/link";
 
 interface Project {
   id: string;
@@ -30,11 +33,6 @@ interface Project {
   user_id: string;
 }
 
-interface UserProfile {
-  id: string;
-  email: string;
-}
-
 export default function AdminPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -45,9 +43,18 @@ export default function AdminPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Global system settings state
-  const [globalWatermark, setGlobalWatermark] = useState("Created via Our Builder");
-  const [savingWatermark, setSavingWatermark] = useState(false);
+  // System Controls
+  const [promoEnabled, setPromoEnabled] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [savingControls, setSavingControls] = useState(false);
+
+  // Advanced Watermark Manager
+  const [wmType, setWmType] = useState("text"); // text or image
+  const [wmText, setWmText] = useState("Created via Our Builder");
+  const [wmImageUrl, setWmImageUrl] = useState("");
+  const [wmOpacity, setWmOpacity] = useState(0.8);
+  const [wmSize, setWmSize] = useState(14);
+  const [savingWm, setSavingWm] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -73,15 +80,18 @@ export default function AdminPage() {
         return;
       }
 
-      // Fetch global watermark config from a global_settings table (or fallback to default)
-      const { data: globalData } = await supabase
-        .from("global_settings")
-        .select("value")
-        .eq("key", "watermark_text")
-        .single();
-
-      if (globalData) {
-        setGlobalWatermark(globalData.value);
+      // Fetch global settings
+      const { data: settings } = await supabase.from("global_settings").select("*");
+      if (settings) {
+        for (const s of settings) {
+          if (s.key === "promo_enabled") setPromoEnabled(s.value === "true");
+          if (s.key === "maintenance_mode") setMaintenanceMode(s.value === "true");
+          if (s.key === "watermark_type") setWmType(s.value);
+          if (s.key === "watermark_text") setWmText(s.value);
+          if (s.key === "watermark_image_url") setWmImageUrl(s.value);
+          if (s.key === "watermark_opacity") setWmOpacity(parseFloat(s.value) || 0.8);
+          if (s.key === "watermark_size") setWmSize(parseInt(s.value) || 14);
+        }
       }
 
       // Fetch all projects and user emails
@@ -92,7 +102,6 @@ export default function AdminPage() {
 
       if (projectsData) {
         setProjects(projectsData);
-        // Get unique user IDs
         const userIds = Array.from(new Set(projectsData.map((p) => p.user_id)));
         const { data: usersData } = await supabase
           .from("users")
@@ -103,7 +112,6 @@ export default function AdminPage() {
           usersData.forEach((u) => (userMap[u.id] = u.email));
           setUsers(userMap);
         }
-        // Count unique users who have built something
         setTotalUsers(userIds.length);
       }
 
@@ -117,20 +125,33 @@ export default function AdminPage() {
     router.push("/login");
   };
 
-  const handleSaveWatermark = async () => {
-    setSavingWatermark(true);
-    // Upsert global watermark setting
-    const { error } = await supabase.from("global_settings").upsert({
-      key: "watermark_text",
-      value: globalWatermark,
-    }, { onConflict: "key" });
-
-    if (!error) {
-      alert("Watermark text saved successfully.");
-    } else {
-      alert("Failed to save watermark.");
+  const saveControls = async () => {
+    setSavingControls(true);
+    const settings = [
+      { key: "promo_enabled", value: String(promoEnabled) },
+      { key: "maintenance_mode", value: String(maintenanceMode) },
+    ];
+    for (const s of settings) {
+      await supabase.from("global_settings").upsert(s, { onConflict: "key" });
     }
-    setSavingWatermark(false);
+    setSavingControls(false);
+    alert("System controls saved.");
+  };
+
+  const saveWatermark = async () => {
+    setSavingWm(true);
+    const settings = [
+      { key: "watermark_type", value: wmType },
+      { key: "watermark_text", value: wmText },
+      { key: "watermark_image_url", value: wmImageUrl },
+      { key: "watermark_opacity", value: String(wmOpacity) },
+      { key: "watermark_size", value: String(wmSize) },
+    ];
+    for (const s of settings) {
+      await supabase.from("global_settings").upsert(s, { onConflict: "key" });
+    }
+    setSavingWm(false);
+    alert("Watermark settings saved.");
   };
 
   if (loading) {
@@ -222,9 +243,11 @@ export default function AdminPage() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3"
+            className="flex items-center gap-4"
           >
-            <ShieldAlert className="w-8 h-8 text-white" />
+            <Link href="/dashboard" className="text-gray-400 hover:text-white transition">
+              <ArrowLeft size={24} />
+            </Link>
             <h1 className="text-3xl font-semibold">Admin Panel</h1>
           </motion.div>
 
@@ -256,30 +279,165 @@ export default function AdminPage() {
             </motion.div>
           </div>
 
-          {/* Global System Settings */}
+          {/* System Controls */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-6 space-y-4"
+            className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-6 space-y-6"
           >
-            <h2 className="text-xl font-semibold text-white">Global System Settings</h2>
-            <div className="space-y-3">
-              <label className="block text-sm text-gray-300">Default Watermark Text</label>
-              <input
-                type="text"
-                value={globalWatermark}
-                onChange={(e) => setGlobalWatermark(e.target.value)}
-                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
-              />
+            <h2 className="text-xl font-semibold text-white">System Controls</h2>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300">Enable Global Promo Popup</span>
               <button
-                onClick={handleSaveWatermark}
-                disabled={savingWatermark}
-                className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-70"
+                onClick={() => setPromoEnabled(!promoEnabled)}
+                className={`relative w-12 h-7 rounded-full transition-colors ${
+                  promoEnabled ? "bg-white" : "bg-white/[0.08]"
+                }`}
               >
-                {savingWatermark ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
-                Save Watermark
+                <div
+                  className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-black transform transition-transform ${
+                    promoEnabled ? "translate-x-5" : ""
+                  }`}
+                />
               </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300">Maintenance Mode</span>
+              <button
+                onClick={() => setMaintenanceMode(!maintenanceMode)}
+                className={`relative w-12 h-7 rounded-full transition-colors ${
+                  maintenanceMode ? "bg-white" : "bg-white/[0.08]"
+                }`}
+              >
+                <div
+                  className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-black transform transition-transform ${
+                    maintenanceMode ? "translate-x-5" : ""
+                  }`}
+                />
+              </button>
+            </div>
+            <button
+              onClick={saveControls}
+              disabled={savingControls}
+              className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-70"
+            >
+              {savingControls ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
+              Save Controls
+            </button>
+          </motion.div>
+
+          {/* Advanced Watermark Manager */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-6 space-y-6"
+          >
+            <h2 className="text-xl font-semibold text-white">Advanced Watermark Manager</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-300">Watermark Type</label>
+                  <select
+                    value={wmType}
+                    onChange={(e) => setWmType(e.target.value)}
+                    className="mt-1 w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                  >
+                    <option value="text">Text</option>
+                    <option value="image">Image</option>
+                  </select>
+                </div>
+
+                {wmType === "text" ? (
+                  <div>
+                    <label className="text-sm text-gray-300">Watermark Text</label>
+                    <input
+                      type="text"
+                      value={wmText}
+                      onChange={(e) => setWmText(e.target.value)}
+                      className="mt-1 w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-sm text-gray-300">Watermark Image URL</label>
+                    <input
+                      type="text"
+                      value={wmImageUrl}
+                      onChange={(e) => setWmImageUrl(e.target.value)}
+                      className="mt-1 w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-gray-300">Opacity</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={wmOpacity}
+                      onChange={(e) => setWmOpacity(parseFloat(e.target.value))}
+                      className="mt-1 w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-300">Size (px)</label>
+                    <input
+                      type="number"
+                      value={wmSize}
+                      onChange={(e) => setWmSize(parseInt(e.target.value))}
+                      className="mt-1 w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={saveWatermark}
+                  disabled={savingWm}
+                  className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-70"
+                >
+                  {savingWm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
+                  Save Watermark
+                </button>
+              </div>
+
+              {/* Live Preview */}
+              <div className="rounded-xl border border-white/[0.08] bg-black/50 p-4 flex items-center justify-center relative overflow-hidden">
+                <div className="relative w-full h-48 bg-gray-900 flex items-center justify-center">
+                  {wmType === "text" ? (
+                    <span
+                      style={{
+                        opacity: wmOpacity,
+                        fontSize: `${wmSize}px`,
+                        color: "white",
+                        position: "absolute",
+                        bottom: 8,
+                        textShadow: "0 0 8px black",
+                      }}
+                    >
+                      {wmText}
+                    </span>
+                  ) : (
+                    <img
+                      src={wmImageUrl || "https://via.placeholder.com/150"}
+                      alt="watermark preview"
+                      style={{
+                        opacity: wmOpacity,
+                        width: `${wmSize * 2}px`,
+                        position: "absolute",
+                        bottom: 8,
+                        right: 8,
+                      }}
+                    />
+                  )}
+                  <p className="text-gray-400 text-xs absolute top-2 left-2">
+                    Preview
+                  </p>
+                </div>
+              </div>
             </div>
           </motion.div>
 
