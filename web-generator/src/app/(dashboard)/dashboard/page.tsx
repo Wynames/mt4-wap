@@ -11,6 +11,7 @@ import {
   Loader2,
   LayoutDashboard,
   Settings,
+  ShieldAlert,
   LogOut,
   Menu,
   X,
@@ -131,8 +132,8 @@ export default function DashboardPage() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-black/80 backdrop-blur-xl border-r border-white/[0.08] z-40 flex flex-col 
-          transition-transform duration-300 lg:static lg:translate-x-0 lg:z-auto
+        className={`fixed top-0 left-0 h-screen overflow-y-auto w-64 bg-black/80 backdrop-blur-xl border-r border-white/[0.08] z-40 flex flex-col 
+          transition-transform duration-300 lg:sticky lg:top-0 lg:translate-x-0 lg:z-auto
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="p-6 flex-1">
@@ -151,6 +152,15 @@ export default function DashboardPage() {
               <LayoutDashboard size={18} />
               Overview
             </a>
+            {isOwner && (
+              <a
+                href="/admin"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/[0.04] hover:text-white transition"
+              >
+                <ShieldAlert size={18} />
+                Admin Panel
+              </a>
+            )}
             <a
               href="/settings"
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-white/[0.04] hover:text-white transition"
