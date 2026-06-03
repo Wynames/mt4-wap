@@ -64,7 +64,7 @@ export default function AdminPage() {
       if (projectsData) {
         setProjects(projectsData);
         // Get unique user IDs
-        const userIds = [...new Set(projectsData.map((p) => p.user_id))];
+        const userIds = Array.from(new Set(projectsData.map((p) => p.user_id)));
         const { data: usersData } = await supabase
           .from("users")
           .select("id, email")
