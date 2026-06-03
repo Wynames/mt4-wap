@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     .single();
 
   if (fetchError || !project) {
+    console.error("Webhook fetch error:", fetchError);
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
     .eq("id", project_id);
 
   if (updateError) {
+    console.error("Webhook update error:", updateError);
     return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
   }
 
