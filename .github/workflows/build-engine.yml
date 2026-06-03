@@ -35,7 +35,7 @@ jobs:
           rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
           sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
 
-          python3 -c "import os; [[open(os.path.join(r, f), 'w', encoding='utf-8').write(open(os.path.join(r, f), 'r', encoding='utf-8').read().replace('@color/black', '#FF000000').replace('@color/white', '#FFFFFFFF')) for f in files if f.endswith('.xml')] for r, d, files in os.walk('android-template/app/src/main/res')]"
+          echo '<?xml version="1.0" encoding="utf-8"?><resources><color name="black">#FF000000</color><color name="white">#FFFFFFFF</color></resources>' > android-template/app/src/main/res/values/colors.xml
 
       - name: Build Release APK
         run: |
