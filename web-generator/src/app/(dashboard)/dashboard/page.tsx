@@ -253,40 +253,51 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Promo Modal */}
+      {/* Promo Modal (Updated) */}
       <AnimatePresence>
         {showPromo && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-3xl p-8 max-w-md w-full mx-4 relative text-white shadow-2xl"
+              className="bg-white text-black rounded-3xl overflow-hidden max-w-sm w-full relative shadow-2xl"
             >
               <button
                 onClick={dismissPromo}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                className="absolute top-3 right-3 z-10 bg-black/20 rounded-full p-1 text-white hover:bg-black/40"
               >
-                <XCircle size={24} />
+                <XCircle size={20} />
               </button>
-              <div className="flex justify-center mb-4">
-                <Sparkles className="w-12 h-12 text-yellow-400" />
+              <img
+                src="https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=800"
+                alt="Free Domain"
+                className="w-full h-40 object-cover"
+              />
+              <div className="p-6 text-center">
+                <h3 className="text-xl font-bold mb-2">Free Domain</h3>
+                <p className="text-gray-600 mb-4">
+                  Dapatkan domain gratis untuk website Anda dengan hosting premium.
+                </p>
+                <a
+                  href=""
+                  target="_blank"
+                  className="block w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition mb-2"
+                >
+                  Visit Web
+                </a>
+                <button
+                  onClick={dismissPromo}
+                  className="text-sm text-gray-500 underline hover:text-black"
+                >
+                  Close
+                </button>
               </div>
-              <h2 className="text-2xl font-semibold mb-4 text-center">Special Offer</h2>
-              <p className="text-gray-300 mb-6 text-center">
-                Dapatkan akses premium untuk membangun APK tanpa batas. Upgrade sekarang!
-              </p>
-              <button
-                onClick={dismissPromo}
-                className="w-full bg-white text-black py-3 rounded-xl font-medium hover:bg-gray-200 transition"
-              >
-                Explore Premium
-              </button>
             </motion.div>
           </motion.div>
         )}
