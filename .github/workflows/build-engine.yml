@@ -35,6 +35,71 @@ jobs:
           rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
           sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
 
+      - name: Inject watermark configuration
+        run: |
+          WM_TYPE=$(echo '${{ env.CONFIG }}' | jq -r '.watermark.watermark_type // "text"')
+          WM_TEXT=$(echo '${{ env.CONFIG }}' | jq -r '.watermark.watermark_text // "Created via Our Builder"')
+          WM_IMAGE_URL=$(echo '${{ env.CONFIG }}' | jq -r '.watermark.watermark_image_url // ""')
+          WM_OPACITY=$(echo '${{ env.CONFIG }}' | jq -r '.watermark.watermark_opacity // "0.8"')
+          WM_SIZE=$(echo '${{ env.CONFIG }}' | jq -r '.watermark.watermark_size // "14"')
+
+          # Build a new injectWatermark function using dynamic values
+          NEW_METHOD="
+              private fun injectWatermark() {
+                  val wmType = \"${WM_TYPE}\"
+                  val wmText = \"${WM_TEXT}\"
+                  val wmImageUrl = \"${WM_IMAGE_URL}\"
+                  val wmOpacity = ${WM_OPACITY}
+                  val wmSize = ${WM_SIZE}
+                  val js = if (wmType == \"text\") {
+                      \"\"\"
+                          (function() {
+                              var existing = document.getElementById('xt4-watermark');
+                              if (existing) existing.remove();
+                              var div = document.createElement('div');
+                              div.id = 'xt4-watermark';
+                              div.innerHTML = '\$wmText';
+                              div.style.position = 'fixed';
+                              div.style.bottom = '0';
+                              div.style.left = '0';
+                              div.style.width = '100%';
+                              div.style.opacity = '\$wmOpacity';
+                              div.style.fontSize = '\${wmSize}px';
+                              div.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                              div.style.color = '#ffffff';
+                              div.style.textAlign = 'center';
+                              div.style.padding = '8px';
+                              div.style.zIndex = '999999';
+                              div.style.fontFamily = 'sans-serif';
+                              document.body.appendChild(div);
+                          })();
+                      \"\"\"
+                  } else {
+                      \"\"\"
+                          (function() {
+                              var existing = document.getElementById('xt4-watermark');
+                              if (existing) existing.remove();
+                              var img = document.createElement('img');
+                              img.id = 'xt4-watermark';
+                              img.src = '\$wmImageUrl';
+                              img.style.position = 'fixed';
+                              img.style.bottom = '0';
+                              img.style.right = '0';
+                              img.style.width = '\${wmSize * 2}px';
+                              img.style.opacity = '\$wmOpacity';
+                              img.style.zIndex = '999999';
+                              document.body.appendChild(img);
+                          })();
+                      \"\"\"
+                  }
+                  webView.evaluateJavascript(js, null)
+              }
+          "
+          # Escape newlines for sed
+          ESCAPED_METHOD=$(echo "$NEW_METHOD" | sed -z 's/\n/\\n/g')
+          # Replace the whole injectWatermark function in MainActivity.kt
+          sed -i "/private fun injectWatermark()/,/^    }$/c\\$ESCAPED_METHOD" android-template/app/src/main/java/com/template/webview/MainActivity.kt
+
       - name: Build Release APK
         run: |
           cd android-template
