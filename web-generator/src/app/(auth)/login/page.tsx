@@ -1,4 +1,4 @@
-// web-generator/src/app/(auth)/login/page.tsx
+// file: web-generator/src/app/(auth)/login/page.tsx
 "use client";
 
 import { useState, FormEvent } from "react";
@@ -80,6 +80,16 @@ export default function LoginPage() {
                 minLength={6}
                 className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
               />
+            </div>
+
+            {/* Custom Captcha placeholder */}
+            <div
+              id="custom-captcha-container"
+              className="flex items-center justify-center py-2"
+              data-sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY}
+              style={{ minHeight: 60 }}
+            >
+              {/* Custom captcha widget will mount here */}
             </div>
 
             {error && (
