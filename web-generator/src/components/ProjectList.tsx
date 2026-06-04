@@ -1,4 +1,4 @@
-// 5. web-generator/src/components/ProjectList.tsx
+// file: web-generator/src/components/ProjectList.tsx
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,7 +8,6 @@ import {
   CheckCircle,
   XCircle,
   Download,
-  ExternalLink,
 } from "lucide-react";
 
 interface Project {
@@ -41,11 +40,19 @@ export default function ProjectList({ projects }: ProjectListProps) {
     }
   };
 
-  const parseDownloadUrls = (downloadUrlStr: string | undefined) => {
+  const parseDownloadUrls = (downloadUrlStr: string | undefined): Record<string, string> => {
     if (!downloadUrlStr) return {};
     try {
-      return JSON.parse(downloadUrlStr);
+      const parsed = JSON.parse(downloadUrlStr);
+      // If parsed is null, a string, or not an object, return empty
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+        // If it's a plain string URL, return as default
+        if (typeof parsed === "string") return { default: parsed };
+        return {};
+      }
+      return parsed as Record<string, string>;
     } catch {
+      // If it's a plain string (not JSON), wrap it as a default
       return { default: downloadUrlStr };
     }
   };
@@ -68,6 +75,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
             <AnimatePresence>
               {projects.map((project) => {
                 const urls = parseDownloadUrls(project.config?.download_url);
+                const hasUrls = Object.keys(urls).length > 0;
                 return (
                   <motion.div
                     key={project.id}
@@ -85,12 +93,12 @@ export default function ProjectList({ projects }: ProjectListProps) {
                     </div>
                     <p className="text-gray-400 text-sm break-all mb-1">{project.target_url}</p>
                     <p className="text-gray-500 text-xs mb-3">{project.package_name}</p>
-                    {project.status === "completed" && Object.keys(urls).length > 0 && (
+                    {project.status === "completed" && hasUrls && (
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(urls).map(([host, url]) => (
                           <a
                             key={host}
-                            href={url as string}
+                            href={url}
                             target="_blank"
                             className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-full transition"
                           >
@@ -126,6 +134,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
                 <AnimatePresence>
                   {projects.map((project) => {
                     const urls = parseDownloadUrls(project.config?.download_url);
+                    const hasUrls = Object.keys(urls).length > 0;
                     return (
                       <motion.tr
                         key={project.id}
@@ -146,12 +155,12 @@ export default function ProjectList({ projects }: ProjectListProps) {
                           </span>
                         </td>
                         <td className="py-4">
-                          {project.status === "completed" && Object.keys(urls).length > 0 ? (
+                          {project.status === "completed" && hasUrls ? (
                             <div className="flex gap-1 flex-wrap">
                               {Object.entries(urls).map(([host, url]) => (
                                 <a
                                   key={host}
-                                  href={url as string}
+                                  href={url}
                                   target="_blank"
                                   className="inline-flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-full transition"
                                 >
