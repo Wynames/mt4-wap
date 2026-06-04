@@ -17,6 +17,7 @@ import {
   X,
   Box,
   XCircle,
+  Sparkles,
 } from "lucide-react";
 
 interface Project {
@@ -84,15 +85,17 @@ export default function DashboardPage() {
         }
       }
 
-      // Check localStorage for promo seen
-      if (promoEnabled && !localStorage.getItem("promo_seen")) {
-        setShowPromo(true);
-      }
-
       setLoading(false);
     };
     init();
   }, []);
+
+  // Promo modal logic – separate effect to avoid hydration issues
+  useEffect(() => {
+    if (!loading && promoEnabled && !localStorage.getItem("promo_seen")) {
+      setShowPromo(true);
+    }
+  }, [loading, promoEnabled]);
 
   // Real-time subscription
   useEffect(() => {
@@ -104,7 +107,7 @@ export default function DashboardPage() {
         "postgres_changes",
         { event: "*", schema: "public", table: "projects", filter: `user_id=eq.${user.id}` },
         () => {
-          fetchProjects(); // Re-fetch entire list to ensure UI consistency
+          fetchProjects();
         }
       )
       .subscribe();
@@ -263,21 +266,24 @@ export default function DashboardPage() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white text-black rounded-3xl p-8 max-w-md w-full mx-4 relative"
+              className="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-3xl p-8 max-w-md w-full mx-4 relative text-white shadow-2xl"
             >
               <button
                 onClick={dismissPromo}
-                className="absolute top-4 right-4 text-gray-400 hover:text-black"
+                className="absolute top-4 right-4 text-gray-400 hover:text-white"
               >
                 <XCircle size={24} />
               </button>
-              <h2 className="text-2xl font-semibold mb-4">Special Offer</h2>
-              <p className="text-gray-600 mb-6">
+              <div className="flex justify-center mb-4">
+                <Sparkles className="w-12 h-12 text-yellow-400" />
+              </div>
+              <h2 className="text-2xl font-semibold mb-4 text-center">Special Offer</h2>
+              <p className="text-gray-300 mb-6 text-center">
                 Dapatkan akses premium untuk membangun APK tanpa batas. Upgrade sekarang!
               </p>
               <button
                 onClick={dismissPromo}
-                className="w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition"
+                className="w-full bg-white text-black py-3 rounded-xl font-medium hover:bg-gray-200 transition"
               >
                 Explore Premium
               </button>
