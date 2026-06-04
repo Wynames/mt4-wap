@@ -18,7 +18,6 @@ import {
   Download,
   Save,
   ArrowLeft,
-  Eye,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -49,7 +48,7 @@ export default function AdminPage() {
   const [savingControls, setSavingControls] = useState(false);
 
   // Advanced Watermark Manager
-  const [wmType, setWmType] = useState("text"); // text or image
+  const [wmType, setWmType] = useState("text");
   const [wmText, setWmText] = useState("Created via Our Builder");
   const [wmImageUrl, setWmImageUrl] = useState("");
   const [wmOpacity, setWmOpacity] = useState(0.8);
@@ -131,11 +130,22 @@ export default function AdminPage() {
       { key: "promo_enabled", value: String(promoEnabled) },
       { key: "maintenance_mode", value: String(maintenanceMode) },
     ];
-    for (const s of settings) {
-      await supabase.from("global_settings").upsert(s, { onConflict: "key" });
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      });
+      if (res.ok) {
+        alert("System controls saved.");
+      } else {
+        alert("Failed to save controls.");
+      }
+    } catch {
+      alert("Network error.");
+    } finally {
+      setSavingControls(false);
     }
-    setSavingControls(false);
-    alert("System controls saved.");
   };
 
   const saveWatermark = async () => {
@@ -147,11 +157,22 @@ export default function AdminPage() {
       { key: "watermark_opacity", value: String(wmOpacity) },
       { key: "watermark_size", value: String(wmSize) },
     ];
-    for (const s of settings) {
-      await supabase.from("global_settings").upsert(s, { onConflict: "key" });
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      });
+      if (res.ok) {
+        alert("Watermark settings saved.");
+      } else {
+        alert("Failed to save watermark settings.");
+      }
+    } catch {
+      alert("Network error.");
+    } finally {
+      setSavingWm(false);
     }
-    setSavingWm(false);
-    alert("Watermark settings saved.");
   };
 
   if (loading) {
@@ -404,38 +425,46 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Live Preview */}
-              <div className="rounded-xl border border-white/[0.08] bg-black/50 p-4 flex items-center justify-center relative overflow-hidden">
-                <div className="relative w-full h-48 bg-gray-900 flex items-center justify-center">
-                  {wmType === "text" ? (
-                    <span
-                      style={{
-                        opacity: wmOpacity,
-                        fontSize: `${wmSize}px`,
-                        color: "white",
-                        position: "absolute",
-                        bottom: 8,
-                        textShadow: "0 0 8px black",
-                      }}
-                    >
-                      {wmText}
-                    </span>
-                  ) : (
-                    <img
-                      src={wmImageUrl || "https://via.placeholder.com/150"}
-                      alt="watermark preview"
-                      style={{
-                        opacity: wmOpacity,
-                        width: `${wmSize * 2}px`,
-                        position: "absolute",
-                        bottom: 8,
-                        right: 8,
-                      }}
-                    />
-                  )}
-                  <p className="text-gray-400 text-xs absolute top-2 left-2">
-                    Preview
-                  </p>
+              {/* Live Preview - smartphone style */}
+              <div className="flex justify-center items-center">
+                <div className="relative w-[220px] h-[400px] bg-black rounded-3xl border-2 border-gray-700 overflow-hidden shadow-xl">
+                  {/* Fake notch */}
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-black rounded-b-xl z-10"></div>
+                  {/* Status bar */}
+                  <div className="absolute top-0 left-0 right-0 h-6 bg-black flex justify-between items-center px-4 text-[10px] text-gray-400 z-10">
+                    <span>9:41</span>
+                    <span>📶 🔋</span>
+                  </div>
+                  {/* Screen content */}
+                  <div className="mt-6 h-[calc(100%-24px)] bg-gray-100 flex items-center justify-center relative">
+                    {wmType === "text" ? (
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: 8,
+                          opacity: wmOpacity,
+                          fontSize: `${wmSize}px`,
+                          color: "white",
+                          textShadow: "0 0 6px black",
+                        }}
+                      >
+                        {wmText}
+                      </span>
+                    ) : (
+                      <img
+                        src={wmImageUrl || "https://via.placeholder.com/80"}
+                        alt="watermark preview"
+                        style={{
+                          position: "absolute",
+                          bottom: 8,
+                          right: 8,
+                          opacity: wmOpacity,
+                          width: `${wmSize * 2}px`,
+                        }}
+                      />
+                    )}
+                    <span className="text-gray-400 text-xs absolute top-2 left-2">Preview</span>
+                  </div>
                 </div>
               </div>
             </div>
