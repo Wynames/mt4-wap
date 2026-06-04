@@ -38,6 +38,9 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Hydration guard
+  const [isMounted, setIsMounted] = useState(false);
+
   // Global settings state
   const [promoEnabled, setPromoEnabled] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -52,6 +55,10 @@ export default function DashboardPage() {
       .order("created_at", { ascending: false });
     setProjects(data || []);
   }, [user]);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -253,55 +260,57 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Promo Modal (Updated) */}
-      <AnimatePresence>
-        {showPromo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-          >
+      {/* Promo Modal (Updated and Hydration Safe) */}
+      {isMounted && (
+        <AnimatePresence>
+          {showPromo && (
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white text-black rounded-3xl overflow-hidden max-w-sm w-full relative shadow-2xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
             >
-              <button
-                onClick={dismissPromo}
-                className="absolute top-3 right-3 z-10 bg-black/20 rounded-full p-1 text-white hover:bg-black/40"
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white text-black rounded-3xl overflow-hidden max-w-sm w-full relative shadow-2xl"
               >
-                <XCircle size={20} />
-              </button>
-              <img
-                src="https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=800"
-                alt="Free Domain"
-                className="w-full h-40 object-cover"
-              />
-              <div className="p-6 text-center">
-                <h3 className="text-xl font-bold mb-2">Free Domain</h3>
-                <p className="text-gray-600 mb-4">
-                  Dapatkan domain gratis untuk website Anda dengan hosting premium.
-                </p>
-                <a
-                  href=""
-                  target="_blank"
-                  className="block w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition mb-2"
-                >
-                  Visit Web
-                </a>
                 <button
                   onClick={dismissPromo}
-                  className="text-sm text-gray-500 underline hover:text-black"
+                  className="absolute top-3 right-3 z-10 bg-black/20 rounded-full p-1 text-white hover:bg-black/40"
                 >
-                  Close
+                  <XCircle size={20} />
                 </button>
-              </div>
+                <img
+                  src="https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=800"
+                  alt="Free Domain"
+                  className="w-full h-40 object-cover"
+                />
+                <div className="p-6 text-center">
+                  <h3 className="text-xl font-bold mb-2">Free Domain</h3>
+                  <p className="text-gray-600 mb-4">
+                    Dapatkan domain gratis untuk website Anda dengan hosting premium.
+                  </p>
+                  <a
+                    href="https://apkbuilder.com/domain-offer"
+                    target="_blank"
+                    className="block w-full bg-black text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition mb-2"
+                  >
+                    Visit Web
+                  </a>
+                  <button
+                    onClick={dismissPromo}
+                    className="text-sm text-gray-500 underline hover:text-black"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Overlay for mobile sidebar */}
       {sidebarOpen && (
