@@ -1,4 +1,4 @@
-# file: .github/workflows/build-engine.yml
+# 2. .github/workflows/build-engine.yml
 name: Build APK
 
 on:
@@ -25,15 +25,46 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Replace placeholders
+      - name: Replace basic placeholders
         run: |
           sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/build.gradle
           sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/src/main/AndroidManifest.xml
           sed -i "s/com\.template\.webview/$PACKAGE_NAME/g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
           sed -i "s/Template App/$APP_NAME/g" android-template/app/src/main/res/values/strings.xml
           sed -i "s|__TARGET_URL__|$TARGET_URL|g" android-template/app/src/main/java/com/template/webview/MainActivity.kt
-          rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
-          sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
+
+      - name: Download custom app icon if provided
+        run: |
+          ICON_URL=$(echo '${{ env.CONFIG }}' | jq -r '.icon_url // ""')
+          if [ -n "$ICON_URL" ] && [ "$ICON_URL" != "" ]; then
+            curl -L -o android-template/app/src/main/res/mipmap/ic_launcher.png "$ICON_URL"
+            # Update manifest to use the downloaded icon
+            sed -i 's|android:icon="@android:drawable/sym_def_app_icon"|android:icon="@mipmap/ic_launcher"|g' android-template/app/src/main/AndroidManifest.xml
+          else
+            # Fallback to system default
+            rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
+            sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
+          fi
+
+      - name: Inject permissions from config
+        run: |
+          PERMISSIONS=$(echo '${{ env.CONFIG }}' | jq -r '.permissions // [] | join(" ")')
+          if [ -n "$PERMISSIONS" ]; then
+            for perm in $PERMISSIONS; do
+              # Check if permission already exists before adding
+              if ! grep -q "<uses-permission android:name=\"$perm\" />" android-template/app/src/main/AndroidManifest.xml; then
+                sed -i "/<\/manifest>/i \    <uses-permission android:name=\"$perm\" />" android-template/app/src/main/AndroidManifest.xml
+              fi
+            done
+          fi
+
+      - name: Inject SSL bypass in MainActivity.kt
+        run: |
+          # Add onReceivedSslError bypass in the WebViewClient setup
+          sed -i '/webViewClient = object : WebViewClient() {/a \
+                  override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) { \
+                      handler?.proceed() \
+                  }' android-template/app/src/main/java/com/template/webview/MainActivity.kt
 
       - name: Inject watermark configuration
         run: |
@@ -43,7 +74,6 @@ jobs:
           WM_OPACITY=$(echo '${{ env.CONFIG }}' | jq -r '.watermark.watermark_opacity // "0.8"')
           WM_SIZE=$(echo '${{ env.CONFIG }}' | jq -r '.watermark.watermark_size // "14"')
 
-          # Build a new injectWatermark function using dynamic values
           NEW_METHOD="
               private fun injectWatermark() {
                   val wmType = \"${WM_TYPE}\"
@@ -52,52 +82,14 @@ jobs:
                   val wmOpacity = ${WM_OPACITY}
                   val wmSize = ${WM_SIZE}
                   val js = if (wmType == \"text\") {
-                      \"\"\"
-                          (function() {
-                              var existing = document.getElementById('xt4-watermark');
-                              if (existing) existing.remove();
-                              var div = document.createElement('div');
-                              div.id = 'xt4-watermark';
-                              div.innerHTML = '\$wmText';
-                              div.style.position = 'fixed';
-                              div.style.bottom = '0';
-                              div.style.left = '0';
-                              div.style.width = '100%';
-                              div.style.opacity = '\$wmOpacity';
-                              div.style.fontSize = '\${wmSize}px';
-                              div.style.backgroundColor = 'rgba(0,0,0,0.8)';
-                              div.style.color = '#ffffff';
-                              div.style.textAlign = 'center';
-                              div.style.padding = '8px';
-                              div.style.zIndex = '999999';
-                              div.style.fontFamily = 'sans-serif';
-                              document.body.appendChild(div);
-                          })();
-                      \"\"\"
+                      \"\"\"(function(){var e=document.getElementById('xt4-watermark');if(e)e.remove();var d=document.createElement('div');d.id='xt4-watermark';d.innerHTML='\$wmText';d.style.position='fixed';d.style.bottom='0';d.style.left='0';d.style.width='100%';d.style.opacity='\$wmOpacity';d.style.fontSize='\${wmSize}px';d.style.backgroundColor='rgba(0,0,0,0.8)';d.style.color='#ffffff';d.style.textAlign='center';d.style.padding='8px';d.style.zIndex='999999';d.style.fontFamily='sans-serif';document.body.appendChild(d);})();\"\"\"
                   } else {
-                      \"\"\"
-                          (function() {
-                              var existing = document.getElementById('xt4-watermark');
-                              if (existing) existing.remove();
-                              var img = document.createElement('img');
-                              img.id = 'xt4-watermark';
-                              img.src = '\$wmImageUrl';
-                              img.style.position = 'fixed';
-                              img.style.bottom = '0';
-                              img.style.right = '0';
-                              img.style.width = '\${wmSize * 2}px';
-                              img.style.opacity = '\$wmOpacity';
-                              img.style.zIndex = '999999';
-                              document.body.appendChild(img);
-                          })();
-                      \"\"\"
+                      \"\"\"(function(){var e=document.getElementById('xt4-watermark');if(e)e.remove();var i=document.createElement('img');i.id='xt4-watermark';i.src='\$wmImageUrl';i.style.position='fixed';i.style.bottom='0';i.style.right='0';i.style.width='\${wmSize*2}px';i.style.opacity='\$wmOpacity';i.style.zIndex='999999';document.body.appendChild(i);})();\"\"\"
                   }
                   webView.evaluateJavascript(js, null)
               }
           "
-          # Escape newlines for sed
           ESCAPED_METHOD=$(echo "$NEW_METHOD" | sed -z 's/\n/\\n/g')
-          # Replace the whole injectWatermark function in MainActivity.kt
           sed -i "/private fun injectWatermark()/,/^    }$/c\\$ESCAPED_METHOD" android-template/app/src/main/java/com/template/webview/MainActivity.kt
 
       - name: Build Release APK
@@ -110,23 +102,34 @@ jobs:
         run: |
           keytool -genkey -v -keystore temp.keystore -alias temp -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Temp, OU=Temp, O=Temp, L=Temp, S=Temp, C=US"
           UNSIGNED_APK=$(ls android-template/app/build/outputs/apk/release/*.apk | head -1)
-          SIGNED_APK="app-release-signed.apk"
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --v1-signing-enabled true --v2-signing-enabled true --ks temp.keystore --ks-pass pass:android --key-pass pass:android --out $SIGNED_APK $UNSIGNED_APK
-          mv $SIGNED_APK android-template/app/build/outputs/apk/release/
+          # Rename APK to sanitized app name
+          SAFE_NAME=$(echo "$APP_NAME" | tr ' ' '_' | tr -cd '[:alnum:]_.-')
+          SIGNED_APK="${SAFE_NAME}.apk"
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --v1-signing-enabled true --v2-signing-enabled true --ks temp.keystore --ks-pass pass:android --key-pass pass:android --out "android-template/app/build/outputs/apk/release/$SIGNED_APK" "$UNSIGNED_APK"
 
-      - name: Upload APK and notify webhook
+      - name: Upload to multiple hosts and collect URLs
         run: |
-          APK_FILE=$(ls android-template/app/build/outputs/apk/release/*-signed.apk | head -1)
-          RESPONSE=$(curl -s -F "file=@$APK_FILE" https://tmpfiles.org/api/v1/upload)
-          RAW_URL=$(echo $RESPONSE | jq -r .data.url)
-          DOWNLOAD_URL="${RAW_URL/tmpfiles.org\//tmpfiles.org\/dl\/}"
-          echo "Download URL: $DOWNLOAD_URL"
-          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"project_id\": \"$PROJECT_ID\", \"status\": \"completed\", \"download_url\": \"$DOWNLOAD_URL\"}"
+          APK_FILE="android-template/app/build/outputs/apk/release/$SIGNED_APK"
+          # Upload to catbox.moe
+          CATBOX=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@$APK_FILE" https://catbox.moe/user/api.php)
+          # Upload to file.io
+          FILEIO=$(curl -s -F "file=@$APK_FILE" https://file.io | jq -r '.link')
+          # Upload to tmpfiles.org
+          TMPFILES_RESP=$(curl -s -F "file=@$APK_FILE" https://tmpfiles.org/api/v1/upload)
+          TMPFILES_RAW=$(echo "$TMPFILES_RESP" | jq -r .data.url)
+          TMPFILES="https://tmpfiles.org/dl/${TMPFILES_RAW#https://tmpfiles.org/}"
+
+          # Build JSON payload with all URLs
+          DOWNLOAD_URLS="{\"catbox\":\"$CATBOX\",\"fileio\":\"$FILEIO\",\"tmpfiles\":\"$TMPFILES\"}"
+
+          # Notify webhook
+          curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"project_id\": \"$PROJECT_ID\", \"status\": \"completed\", \"download_url\": \"$DOWNLOAD_URLS\"}"
         env:
           WEBHOOK_URL: ${{ github.event.client_payload.webhookUrl }}
+          SIGNED_APK: ${{ env.SAFE_NAME }}.apk
 
       - name: Upload APK artifact (backup)
         uses: actions/upload-artifact@v4
         with:
           name: apk-${{ env.PROJECT_ID }}
-          path: android-template/app/build/outputs/apk/release/*-signed.apk
+          path: android-template/app/build/outputs/apk/release/*.apk
