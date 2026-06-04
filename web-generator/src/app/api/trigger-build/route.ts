@@ -69,6 +69,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
   }
 
+  // Fetch global watermark settings
+  const { data: globalSettings, error: globalSettingsError } = await supabaseAdmin
+    .from("global_settings")
+    .select("*")
+    .in("key", [
+      "watermark_type",
+      "watermark_text",
+      "watermark_image_url",
+      "watermark_opacity",
+      "watermark_size",
+    ]);
+
+  const watermarkConfig: any = {};
+  if (globalSettings) {
+    for (const s of globalSettings) {
+      watermarkConfig[s.key] = s.value;
+    }
+  }
+
+  // Merge watermark config into the payload
+  const finalConfig = {
+    ...config,
+    watermark: watermarkConfig,
+  };
+
   // Insert project
   const projectId = crypto.randomUUID();
   const { error: insertError } = await supabaseAdmin.from("projects").insert({
@@ -78,7 +103,7 @@ export async function POST(request: Request) {
     target_url: targetUrl,
     package_name: packageName,
     status: "waiting",
-    config: config || {},
+    config: finalConfig,
   });
 
   if (insertError) {
@@ -121,7 +146,7 @@ export async function POST(request: Request) {
               appName,
               targetUrl,
               packageName,
-              config,
+              config: finalConfig,
               webhookUrl,
             },
           }),
