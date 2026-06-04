@@ -1,4 +1,4 @@
-// 3. web-generator/src/app/(dashboard)/settings/page.tsx
+// file: web-generator/src/app/(dashboard)/settings/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -86,13 +86,22 @@ export default function SettingsPage() {
 
   const savePermissions = async () => {
     setSavingPerms(true);
-    const { error } = await supabase
+    // Perform update and immediately select to verify
+    const { data, error } = await supabase
       .from("users")
       .update({ config: { permissions } })
-      .eq("id", profile.id);
+      .eq("id", profile.id)
+      .select("id"); // Returns the updated row if successful
+
     setSavingPerms(false);
-    if (error) alert("Gagal menyimpan permission.");
-    else alert("Permission tersimpan.");
+
+    if (error) {
+      alert("Gagal menyimpan permission: " + error.message);
+    } else if (!data || data.length === 0) {
+      alert("Gagal menyimpan: Akses ditolak oleh database (RLS).");
+    } else {
+      alert("Permission tersimpan.");
+    }
   };
 
   const handleLogout = async () => {
