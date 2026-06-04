@@ -1,7 +1,7 @@
 // file: web-generator/src/app/(dashboard)/admin/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
@@ -18,6 +18,8 @@ import {
   Download,
   Save,
   ArrowLeft,
+  Upload,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -54,6 +56,9 @@ export default function AdminPage() {
   const [wmOpacity, setWmOpacity] = useState(0.8);
   const [wmSize, setWmSize] = useState(14);
   const [savingWm, setSavingWm] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -145,6 +150,39 @@ export default function AdminPage() {
       alert("Network error.");
     } finally {
       setSavingControls(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const fileName = `watermarks/${Date.now()}-${file.name}`;
+
+    const { data, error } = await supabase.storage
+      .from("assets")
+      .upload(fileName, file);
+
+    if (error) {
+      alert("Gagal mengunggah gambar: " + error.message);
+      setUploadingImage(false);
+      return;
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("assets")
+      .getPublicUrl(fileName);
+
+    setWmImageUrl(publicUrlData.publicUrl);
+    setUploadingImage(false);
+  };
+
+  const clearWatermarkImage = () => {
+    setWmImageUrl("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -382,13 +420,36 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div>
-                    <label className="text-sm text-gray-300">Watermark Image URL</label>
-                    <input
-                      type="text"
-                      value={wmImageUrl}
-                      onChange={(e) => setWmImageUrl(e.target.value)}
-                      className="mt-1 w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30"
-                    />
+                    <label className="text-sm text-gray-300">Watermark Image</label>
+                    <div className="mt-1 flex items-center gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        ref={fileInputRef}
+                        className="hidden"
+                        id="watermark-file-input"
+                      />
+                      <label
+                        htmlFor="watermark-file-input"
+                        className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl cursor-pointer transition"
+                      >
+                        <Upload size={16} />
+                        {uploadingImage ? "Uploading..." : "Choose Image"}
+                      </label>
+                      {wmImageUrl && (
+                        <button
+                          onClick={clearWatermarkImage}
+                          className="text-red-400 hover:text-red-300 p-2"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                    {uploadingImage && <Loader2 className="w-4 h-4 animate-spin mt-2" />}
+                    {wmImageUrl && !uploadingImage && (
+                      <p className="text-xs text-gray-400 mt-2 break-all">{wmImageUrl}</p>
+                    )}
                   </div>
                 )}
 
