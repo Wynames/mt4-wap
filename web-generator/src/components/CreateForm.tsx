@@ -1,9 +1,17 @@
-// file: web-generator/src/components/CreateForm.tsx
+// 4. web-generator/src/components/CreateForm.tsx
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useRef, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
-import { Loader2, CheckCircle, XCircle, Sparkles } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Sparkles,
+  Upload,
+  Trash2,
+} from "lucide-react";
 
 interface CreateFormProps {
   dailyLimitReached: boolean;
@@ -21,6 +29,70 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
     text: string;
   } | null>(null);
 
+  // Icon upload
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconUrl, setIconUrl] = useState<string>("");
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load user permissions from profile
+  const [permissions, setPermissions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadPermissions = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("users")
+          .select("config")
+          .eq("id", user.id)
+          .single();
+        if (data?.config?.permissions) {
+          const perms: string[] = [];
+          if (data.config.permissions.camera) perms.push("android.permission.CAMERA");
+          if (data.config.permissions.microphone) perms.push("android.permission.RECORD_AUDIO");
+          if (data.config.permissions.location) perms.push("android.permission.ACCESS_FINE_LOCATION");
+          if (data.config.permissions.storage) perms.push("android.permission.READ_EXTERNAL_STORAGE");
+          // always include INTERNET and ACCESS_NETWORK_STATE
+          perms.push("android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE");
+          setPermissions(perms);
+        } else {
+          setPermissions(["android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE"]);
+        }
+      }
+    };
+    loadPermissions();
+  }, []);
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingIcon(true);
+    setIconFile(file);
+    const fileName = `icons/${Date.now()}-${file.name}`;
+    const { error } = await supabase.storage
+      .from("assets")
+      .upload(fileName, file);
+    if (error) {
+      alert("Gagal upload ikon: " + error.message);
+      setUploadingIcon(false);
+      return;
+    }
+    const { data: publicUrlData } = supabase.storage
+      .from("assets")
+      .getPublicUrl(fileName);
+    setIconUrl(publicUrlData.publicUrl);
+    setUploadingIcon(false);
+  };
+
+  const clearIcon = () => {
+    setIconFile(null);
+    setIconUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (dailyLimitReached) return;
@@ -36,14 +108,17 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
           appName,
           targetUrl,
           packageName,
-          config: { pullToRefresh, antiScreenshot },
+          config: {
+            pullToRefresh,
+            antiScreenshot,
+            icon_url: iconUrl,
+            permissions,
+          },
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal memproses permintaan");
-      }
+      if (!res.ok) throw new Error(data.error || "Gagal memproses permintaan");
 
       setMessage({
         type: "success",
@@ -55,6 +130,8 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
       setPackageName("");
       setPullToRefresh(true);
       setAntiScreenshot(false);
+      setIconFile(null);
+      setIconUrl("");
     } catch (error: any) {
       setMessage({ type: "error", text: error.message });
     } finally {
@@ -87,19 +164,14 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
       onSubmit={handleSubmit}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-8 shadow-2xl"
+      className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-2xl p-6 md:p-8 shadow-2xl"
     >
-      <h2 className="text-2xl font-semibold text-white mb-6">
-        Buat APK Baru
-      </h2>
+      <h2 className="text-2xl font-semibold text-white mb-6">Buat APK Baru</h2>
 
       <div className="space-y-5">
         {/* App Name */}
         <div>
-          <label
-            htmlFor="appName"
-            className="block text-sm font-medium text-gray-300 mb-1"
-          >
+          <label htmlFor="appName" className="block text-sm font-medium text-gray-300 mb-1">
             Nama Aplikasi
           </label>
           <input
@@ -115,10 +187,7 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
 
         {/* Target URL */}
         <div>
-          <label
-            htmlFor="targetUrl"
-            className="block text-sm font-medium text-gray-300 mb-1"
-          >
+          <label htmlFor="targetUrl" className="block text-sm font-medium text-gray-300 mb-1">
             URL Target
           </label>
           <input
@@ -134,11 +203,8 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
 
         {/* Package Name */}
         <div>
-          <label
-            htmlFor="packageName"
-            className="block text-sm font-medium text-gray-300 mb-1"
-          >
-            Nama Paket (Package Name)
+          <label htmlFor="packageName" className="block text-sm font-medium text-gray-300 mb-1">
+            Nama Paket
           </label>
           <input
             id="packageName"
@@ -151,6 +217,35 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
             title="Format: com.example.app"
             className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
           />
+        </div>
+
+        {/* Custom Icon Upload */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            App Icon (optional)
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleIconUpload}
+              ref={fileInputRef}
+              className="hidden"
+              id="icon-upload"
+            />
+            <label
+              htmlFor="icon-upload"
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl cursor-pointer transition"
+            >
+              <Upload size={16} />
+              {uploadingIcon ? "Uploading..." : iconFile ? iconFile.name : "Choose Image"}
+            </label>
+            {iconUrl && (
+              <button onClick={clearIcon} className="text-red-400 hover:text-red-300">
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Toggle Switches */}
@@ -168,7 +263,6 @@ export default function CreateForm({ dailyLimitReached }: CreateFormProps) {
             </div>
             <span className="text-sm text-gray-300">Pull-to-Refresh</span>
           </label>
-
           <label className="flex items-center gap-3 cursor-pointer">
             <div className="relative">
               <input
