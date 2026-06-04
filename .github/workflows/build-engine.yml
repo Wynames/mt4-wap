@@ -1,4 +1,4 @@
-# 2. .github/workflows/build-engine.yml
+# file: .github/workflows/build-engine.yml
 name: Build APK
 
 on:
@@ -38,10 +38,8 @@ jobs:
           ICON_URL=$(echo '${{ env.CONFIG }}' | jq -r '.icon_url // ""')
           if [ -n "$ICON_URL" ] && [ "$ICON_URL" != "" ]; then
             curl -L -o android-template/app/src/main/res/mipmap/ic_launcher.png "$ICON_URL"
-            # Update manifest to use the downloaded icon
             sed -i 's|android:icon="@android:drawable/sym_def_app_icon"|android:icon="@mipmap/ic_launcher"|g' android-template/app/src/main/AndroidManifest.xml
           else
-            # Fallback to system default
             rm -f android-template/app/src/main/res/mipmap/ic_launcher.png
             sed -i 's|android:icon="@mipmap/ic_launcher"|android:icon="@android:drawable/sym_def_app_icon"|g' android-template/app/src/main/AndroidManifest.xml
           fi
@@ -51,7 +49,6 @@ jobs:
           PERMISSIONS=$(echo '${{ env.CONFIG }}' | jq -r '.permissions // [] | join(" ")')
           if [ -n "$PERMISSIONS" ]; then
             for perm in $PERMISSIONS; do
-              # Check if permission already exists before adding
               if ! grep -q "<uses-permission android:name=\"$perm\" />" android-template/app/src/main/AndroidManifest.xml; then
                 sed -i "/<\/manifest>/i \    <uses-permission android:name=\"$perm\" />" android-template/app/src/main/AndroidManifest.xml
               fi
@@ -60,6 +57,8 @@ jobs:
 
       - name: Inject SSL bypass in MainActivity.kt
         run: |
+          # Add the required imports first
+          sed -i '/package /a import android.webkit.SslErrorHandler\nimport android.net.http.SslError' android-template/app/src/main/java/com/template/webview/MainActivity.kt
           # Add onReceivedSslError bypass in the WebViewClient setup
           sed -i '/webViewClient = object : WebViewClient() {/a \
                   override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) { \
@@ -102,7 +101,6 @@ jobs:
         run: |
           keytool -genkey -v -keystore temp.keystore -alias temp -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Temp, OU=Temp, O=Temp, L=Temp, S=Temp, C=US"
           UNSIGNED_APK=$(ls android-template/app/build/outputs/apk/release/*.apk | head -1)
-          # Rename APK to sanitized app name
           SAFE_NAME=$(echo "$APP_NAME" | tr ' ' '_' | tr -cd '[:alnum:]_.-')
           SIGNED_APK="${SAFE_NAME}.apk"
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign --v1-signing-enabled true --v2-signing-enabled true --ks temp.keystore --ks-pass pass:android --key-pass pass:android --out "android-template/app/build/outputs/apk/release/$SIGNED_APK" "$UNSIGNED_APK"
@@ -110,19 +108,14 @@ jobs:
       - name: Upload to multiple hosts and collect URLs
         run: |
           APK_FILE="android-template/app/build/outputs/apk/release/$SIGNED_APK"
-          # Upload to catbox.moe
           CATBOX=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@$APK_FILE" https://catbox.moe/user/api.php)
-          # Upload to file.io
           FILEIO=$(curl -s -F "file=@$APK_FILE" https://file.io | jq -r '.link')
-          # Upload to tmpfiles.org
           TMPFILES_RESP=$(curl -s -F "file=@$APK_FILE" https://tmpfiles.org/api/v1/upload)
           TMPFILES_RAW=$(echo "$TMPFILES_RESP" | jq -r .data.url)
           TMPFILES="https://tmpfiles.org/dl/${TMPFILES_RAW#https://tmpfiles.org/}"
 
-          # Build JSON payload with all URLs
           DOWNLOAD_URLS="{\"catbox\":\"$CATBOX\",\"fileio\":\"$FILEIO\",\"tmpfiles\":\"$TMPFILES\"}"
 
-          # Notify webhook
           curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" -d "{\"project_id\": \"$PROJECT_ID\", \"status\": \"completed\", \"download_url\": \"$DOWNLOAD_URLS\"}"
         env:
           WEBHOOK_URL: ${{ github.event.client_payload.webhookUrl }}
