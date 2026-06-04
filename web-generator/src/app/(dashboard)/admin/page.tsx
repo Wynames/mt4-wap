@@ -170,7 +170,6 @@ export default function AdminPage() {
       return;
     }
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from("assets")
       .getPublicUrl(fileName);
@@ -228,6 +227,13 @@ export default function AdminPage() {
       </div>
     );
   }
+
+  // Helper to get user display name
+  const getUserDisplay = (userId: string) => {
+    if (users[userId]) return users[userId];
+    // Fallback: use part of ID
+    return `User ${userId.slice(0, 8)}`;
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex">
@@ -486,9 +492,9 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Live Preview - smartphone style */}
+              {/* Live Preview - glowing phone */}
               <div className="flex justify-center items-center">
-                <div className="relative w-[220px] h-[400px] bg-black rounded-3xl border-2 border-gray-700 overflow-hidden shadow-xl">
+                <div className="relative w-[220px] h-[400px] bg-black rounded-3xl border-2 border-gray-700 overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.15)]">
                   {/* Fake notch */}
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-20 h-5 bg-black rounded-b-xl z-10"></div>
                   {/* Status bar */}
@@ -497,7 +503,7 @@ export default function AdminPage() {
                     <span>📶 🔋</span>
                   </div>
                   {/* Screen content */}
-                  <div className="mt-6 h-[calc(100%-24px)] bg-gray-100 flex items-center justify-center relative">
+                  <div className="mt-6 h-[calc(100%-24px)] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative">
                     {wmType === "text" ? (
                       <span
                         style={{
@@ -506,7 +512,7 @@ export default function AdminPage() {
                           opacity: wmOpacity,
                           fontSize: `${wmSize}px`,
                           color: "white",
-                          textShadow: "0 0 6px black",
+                          textShadow: "0 0 8px black",
                         }}
                       >
                         {wmText}
@@ -555,7 +561,7 @@ export default function AdminPage() {
                         key={project.id}
                         className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors"
                       >
-                        <td className="py-4 text-gray-400">{users[project.user_id] || "Unknown"}</td>
+                        <td className="py-4 text-gray-400">{getUserDisplay(project.user_id)}</td>
                         <td className="py-4 font-medium">{project.app_name}</td>
                         <td className="py-4 text-gray-400 truncate max-w-[150px]">{project.target_url}</td>
                         <td className="py-4 text-gray-500 text-sm">{project.package_name}</td>
